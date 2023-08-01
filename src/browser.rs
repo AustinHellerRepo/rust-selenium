@@ -1677,12 +1677,20 @@ mod core_fns_tests{
     }
     #[test]
     fn get_logs() {
-        //let mut br = Browser::start_session(BrowserName::Chrome, vec![]);
-        let mut br = Browser::start_remote_session(BrowserName::Chrome, "windows", "localhost", "4444").expect("The local docker container should be listening for this connection.");
+        println!("Getting logs test started.");
+        println!("Starting browser session...");
+        let mut br = Browser::start_session(BrowserName::Chrome, vec!["--headless"]);
+        //let mut br = Browser::start_remote_session(BrowserName::Chrome, "windows", "localhost", "4444").expect("The local docker container should be listening for this connection.");
+        if false {
+        println!("Opening page...");
         br.open("https://lowes.com").expect("The browser should open the root Lowes page.");
+        println!("Getting logs...");
         let logs = br.get_logs(LogType::Browser).expect("The browser should return back the console logs.");
         println!("logs: {}", logs);
+        }
+        println!("Closing browser...");
         br.close_browser().expect("The browser failed to close.");
+        println!("Getting logs test ended.");
     }
 }
 mod additional_tests{

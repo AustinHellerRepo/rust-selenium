@@ -17,9 +17,13 @@ pub enum LocatorStrategy{
 pub(crate) fn send_request(ip:&str,port:&str,method: Method, path: &str, headers: Vec<String>, body: &str)->Result<String,Box<dyn Error>> {
     let request = create_req(method, path, headers, body);
     let address = format!("{}:{}",ip,port);
+    println!("Connecting...");
     let mut connection = TcpStream::connect(address)?;
+    println!("Writing...");
     connection.write(request.as_bytes())?;
+    println!("Flushing...");
     connection.flush()?;
+    println!("Flushed");
     let buf = read_response_to_vec_u8(connection).unwrap();
     let st = String::from_utf8(buf).unwrap();
     Ok(st)    
