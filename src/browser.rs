@@ -28,6 +28,25 @@ pub enum BrowserName{
     Firefox,
     Safari
 }
+
+pub enum LogType {
+    Browser,
+    Driver,
+    Client,
+    Server
+}
+
+impl LogType {
+    pub fn get_json_string(&self) -> String {
+        match self {
+            LogType::Browser => String::from("browser"),
+            LogType::Driver => String::from("driver"),
+            LogType::Client => String::from("client"),
+            LogType::Server => String::from("server"),
+        }
+    }
+}
+
 /// Main crate struct
 /// 
 /// Contains methods for manipulating the browser session, internally making requests to the selenium server.
@@ -65,6 +84,8 @@ pub struct Browser{
     alert_text_url:String,
     screenshot_url:String,
     print_page_url:String,
+    get_log_url:String,
+    get_log_types_url:String,
 }
 
 impl Browser{
@@ -614,6 +635,20 @@ impl Browser{
         Ok(())
     }
 }
+
+impl Browser {
+    pub fn get_logs(&self,log_type:LogType)->Result<String,String>{
+        let body = format!(r#"{{"type":"{}"}}"#,log_type.get_json_string());
+        let resp = send_and_read_body(&self.ip,&self.port,Method::POST,&self.get_log_url,vec![],&body);
+        let map:HashMap<&str,String> = serde_json::from_str(&resp).unwrap();
+        Ok((*map.get("value").unwrap()).to_string())
+    }
+    pub fn get_log_types(&self)->Result<String,String>{
+        let resp = send_and_read_body(&self.ip,&self.port,Method::GET,&self.get_log_types_url,vec![],"");
+        Ok(resp)
+    }
+}
+
 pub (self) mod utils{
     use super::*;
     pub (super) fn generate_browser_links(ip:&str,port:&str,sess_id:&str)->Browser{
@@ -649,6 +684,8 @@ pub (self) mod utils{
             alert_text_url:format!("wd/hub/session/{}/alert/text",sess_id),
             screenshot_url:format!("wd/hub/session/{}/screenshot",sess_id),
             print_page_url:format!("wd/hub/session/{}/print",sess_id),
+            get_log_url:format!("wd/hub/session/{}/se/log",sess_id),
+            get_log_types_url:format!("wd/hub/session/{}/se/log/types",sess_id),
         }
     }
     pub (super) fn create_session_body_json(browser:BrowserName,args:Vec<&str>)->String{
@@ -1637,6 +1674,15 @@ mod core_fns_tests{
         br.close_browser().unwrap();
         assert!(res.is_ok());
         assert!(res2.is_ok());        
+    }
+    #[test]
+    fn get_logs() {
+        //let mut br = Browser::start_session(BrowserName::Chrome, vec![]);
+        let mut br = Browser::start_remote_session(BrowserName::Chrome, "windows", "localhost", "4444").expect("The local docker container should be listening for this connection.");
+        br.open("https://lowes.com").expect("The browser should open the root Lowes page.");
+        let logs = br.get_logs(LogType::Browser).expect("The browser should return back the console logs.");
+        println!("logs: {}", logs);
+        br.close_browser().expect("The browser failed to close.");
     }
 }
 mod additional_tests{
